@@ -13,7 +13,7 @@ export function create_clients(on_refresh_fail) {
     const modrinth_client = axios.create({
         baseURL: "https://api.modrinth.com/v2",
         headers: {
-            'User-Agent': 'Usergnalin/mc_manager_api (usernilang@gmail.com)'
+            'User-Agent': 'Usergnalin/fluxite (usernilang@gmail.com)'
         }
     })
 
