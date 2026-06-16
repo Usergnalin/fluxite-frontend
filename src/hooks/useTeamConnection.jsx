@@ -84,8 +84,8 @@ export function useTeamConnection(teamId) {
           }
           // During refresh, don't change status - keep it as 'reconnecting' or 'live'
 
-          // 2. Fetch snapshot once SSE is connected and buffering
-          fetchSnapshotAndReconcile()
+          // 2. Fetch snapshot once SSE is connected and buffering (deferred to prevent setState during render)
+          setTimeout(() => fetchSnapshotAndReconcile(), 0)
         },
 
         onError: async (probeStatus) => {

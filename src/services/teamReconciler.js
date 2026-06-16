@@ -33,7 +33,8 @@ class TeamReconciler {
       agents: this.toMap(snapshot.agents, 'agent_id'),
       servers: this.toMap(snapshot.servers, 'server_id'),
       modules: this.toMap(snapshot.modules, 'module_id'),
-      commands: this.toMap(snapshot.commands, 'command_id')
+      commands: this.toMap(snapshot.commands, 'command_id'),
+      tunnels: this.toMap(snapshot.tunnels, 'tunnel_id')
     }
   }
 
@@ -94,7 +95,8 @@ class TeamReconciler {
       agent: 'agents',
       server: 'servers',
       module: 'modules',
-      command: 'commands'
+      command: 'commands',
+      tunnel: 'tunnels'
     }
     return mapping[resource]
   }
@@ -105,7 +107,8 @@ class TeamReconciler {
       agent: 'agent_id',
       server: 'server_id',
       module: 'module_id',
-      command: 'command_id'
+      command: 'command_id',
+      tunnel: 'tunnel_id'
     }
     return mapping[resource]
   }

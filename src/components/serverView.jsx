@@ -103,7 +103,6 @@ export default function ServerView({ teamId, agentId, serverId, serverName, onBa
                         teamId={teamId}
                         agentId={agentId}
                         serverId={serverId}
-                        serverName={serverName}
                         auth_client={auth_client}
                         onBack={onBack}
                     />

@@ -17,7 +17,8 @@ const useTeamStore = create((set, get) => ({
           agents: {},
           servers: {},
           modules: {},
-          commands: {}
+          commands: {},
+          tunnels: {}
         }
       },
       status: {
@@ -112,7 +113,8 @@ const getResourceKey = (resource) => {
     agent: 'agents',
     server: 'servers', 
     module: 'modules',
-    command: 'commands'
+    command: 'commands',
+    tunnel: 'tunnels'
   }
   return mapping[resource]
 }
@@ -123,7 +125,8 @@ const getIdField = (resource) => {
     agent: 'agent_id',
     server: 'server_id',
     module: 'module_id',
-    command: 'command_id'
+    command: 'command_id',
+    tunnel: 'tunnel_id'
   }
   return mapping[resource]
 }

@@ -1,9 +1,14 @@
 import { useState } from 'react'
-import { Trash2, AlertTriangle } from 'lucide-react'
+import { Trash2, AlertTriangle, Copy } from 'lucide-react'
+import { useTeamData } from '../../hooks/useTeamData.jsx'
 
-export default function ConfigureTab({ teamId, agentId, serverId, serverName, auth_client, onBack }) {
+export default function ConfigureTab({ teamId, agentId, serverId, auth_client, onBack }) {
     const [deleteConfirmation, setDeleteConfirmation] = useState('')
     const [deleting, setDeleting] = useState(false)
+    const teamData = useTeamData(teamId)
+
+    const tunnelData = Object.values(teamData?.tunnels || {}).filter(m => m.server_id === serverId)[0]
+    const serverData = Object.values(teamData?.servers || {}).filter(m => m.server_id === serverId)[0]
 
     const handleDeleteServer = async () => {
         if (deleteConfirmation !== 'DELETE FOREVER') return
@@ -25,14 +30,97 @@ export default function ConfigureTab({ teamId, agentId, serverId, serverName, au
         }
     }
 
+    const handleExposePublic = async () => {
+        try {
+            await auth_client.post(`/tunnel/server/${serverId}`, {})
+        } catch (error) {
+            console.error('Failed to expose server:', error)
+        }
+    }
+
+    const handleOffTunnel = async () => {
+        try {
+            await auth_client.delete(`/tunnel/${tunnelData.tunnel_id}`)
+        } catch (error) {
+            console.error('Failed to turn off tunnel:', error)
+        }
+    }
+
+    const copyTunnelUrl = () => {
+        navigator.clipboard.writeText(`${tunnelData.subdomain}.fluxite.io`)
+    }
+
+    const copyLocalUrl = () => {
+        navigator.clipboard.writeText(`localhost:${serverData.server_port}`)
+    }
+
     const isDeleteEnabled = deleteConfirmation === 'DELETE FOREVER' && !deleting
 
     return (
         <div className="max-w-2xl mx-auto p-6">
             <h2 className="text-2xl font-bold text-text-primary mb-6">Configure Server</h2>
+            
+            {/* Server Access Section */}
+            <div className="bg-bg-surface border border-border-primary rounded-lg p-6 mb-6">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-text-primary">Server Access</h3>
+                    {tunnelData ? (
+                        tunnelData.to_delete ? (
+                            <button onClick={handleOffTunnel} className="px-3 py-1 bg-bg-secondary text-white rounded hover:bg-bg-primary disabled" disabled>
+                                Tunnel is being deleted...
+                            </button>
+                        ) : (
+                            <button onClick={handleOffTunnel} className="px-3 py-1 bg-bg-secondary text-white rounded hover:bg-bg-primary">
+                                Turn off Tunnel
+                            </button>
+                        )
+                    ) : (
+                        <button onClick={handleExposePublic} className="px-3 py-1 bg-bg-secondary text-white rounded hover:bg-bg-primary">
+                            Expose to public
+                        </button>
+                    )}
+                </div>
+                {tunnelData ? (
+                    <div className="space-y-2">
+                        <p className="text-gray-300">
+                            This server is Publicly accessible on
+                        </p>
+                        <div className="flex items-center gap-2 bg-bg-primary p-2 rounded-lg">
+                            <span className="text-gray-300 text-lg flex-1 break-all">
+                                {tunnelData.subdomain}.fluxite.io
+                            </span>
+
+                            <button
+                                onClick={copyTunnelUrl}
+                                className="text-gray-400 hover:text-white"
+                            >
+                                <Copy size={24} />
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="space-y-2">
+                        <p className="text-gray-300">
+                            This server is not publicly accessible. Access it locally on    
+                        </p>
+                        <div className="flex items-center gap-2 bg-bg-primary p-2 rounded-lg">
+                            <span className="text-gray-300 text-lg flex-1 break-all">
+                                localhost:{serverData?.server_port}
+                            </span>
+
+                            <button
+                                onClick={copyLocalUrl}
+                                className="text-gray-400 hover:text-white"
+                            >
+                                <Copy size={24} />
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
 
             {/* Delete Server Section */}
-            <div className="bg-red-900/20 border border-red-600/50 rounded-lg p-6">
+            <div className="bg-red-900/20 rounded-lg p-6">
                 <div className="flex items-center gap-3 mb-4">
                     <AlertTriangle className="text-red-400" size={24} />
                     <h3 className="text-xl font-semibold text-red-400">Delete Server</h3>
@@ -45,7 +133,7 @@ export default function ConfigureTab({ teamId, agentId, serverId, serverName, au
                     </p>
 
                     <p className="text-gray-300 text-sm">
-                        Server to be deleted: <span className="text-white font-medium">{serverName}</span>
+                        Server to be deleted: <span className="text-white font-medium">{serverData.server_name}</span>
                     </p>
 
                     <div className="space-y-2">
