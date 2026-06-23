@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useApi } from '../api/client.jsx'
 import { useTeamData } from '../hooks/useTeamData.jsx'
 import ReactMarkdown from 'react-markdown'
@@ -11,11 +11,14 @@ import { Download, Calendar, Hash, FileCode, CheckCircle, X, Package, AlertTrian
 export default function ModuleView({ teamId, agentId, serverId, projectId, onClose, isInstalled = false }) {
     const [project, setProject] = useState(null)
     const [versions, setVersions] = useState([])
-    const [members, setMembers] = useState([])
+    const [_members, setMembers] = useState([])
     const [loading, setLoading] = useState(true)
     const [selectedVersion, setSelectedVersion] = useState(null)
     const { modrinth_client, auth_client } = useApi()
     const teamData = useTeamData(teamId)
+    const [showModpackSetup, setShowModpackSetup] = useState(false)
+    const [modpackName, setModpackName] = useState('')
+    const [modpackThumbnailUrl, setModpackThumbnailUrl] = useState('')
 
     // Install modal state
     const [installing, setInstalling] = useState(false)
@@ -26,6 +29,29 @@ export default function ModuleView({ teamId, agentId, serverId, projectId, onClo
     const [showResolveModal, setShowResolveModal] = useState(false)
     const [resolvedDeps, setResolvedDeps] = useState(null)
     const [resolvingDeps, setResolvingDeps] = useState(false)
+
+    const getInitials = (name) => {
+        if (!name) return ''
+        const words = name.trim().split(/\s+/)
+        if (words.length >= 2) {
+            return (words[0][0] + words[1][0]).toUpperCase()
+        }
+        return name.slice(0, 2).toUpperCase()
+    }
+
+    const getBestVersion = useCallback((versions) => {
+        const mc_version = teamData?.servers?.[serverId]?.properties?.mc_version
+        const loader_type = teamData?.servers?.[serverId]?.properties?.loader_type
+        if (!mc_version || !loader_type) return null
+        // Filter versions by minecraft version and loader type
+        const filteredVersions = versions.filter(version =>
+            version.game_versions.includes(mc_version) &&
+            version.loaders.includes(loader_type)
+        )
+        // Return null if no matching version found (requires manual selection)
+        if (filteredVersions.length === 0) return null
+        return filteredVersions.sort((a, b) => new Date(b.date_published) - new Date(a.date_published))[0]
+    }, [teamData, serverId])
 
     useEffect(() => {
         const fetchData = async () => {
@@ -51,28 +77,14 @@ export default function ModuleView({ teamId, agentId, serverId, projectId, onClo
             }
         }
         fetchData()
-    }, [projectId, modrinth_client])
-    
-    const getBestVersion = (versions) => {
-        const mc_version = teamData?.servers?.[serverId]?.properties?.mc_version
-        const loader_type = teamData?.servers?.[serverId]?.properties?.loader_type
-        if (!mc_version || !loader_type) return null
-        // Filter versions by minecraft version and loader type
-        const filteredVersions = versions.filter(version =>
-            version.game_versions.includes(mc_version) &&
-            version.loaders.includes(loader_type)
-        )
-        // Return null if no matching version found (requires manual selection)
-        if (filteredVersions.length === 0) return null
-        return filteredVersions.sort((a, b) => new Date(b.date_published) - new Date(a.date_published))[0]
-    }
+    }, [projectId, modrinth_client, getBestVersion])
 
     if (loading) {
         return (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
                 <div className="w-full max-w-5xl rounded-lg bg-bg-card p-6 shadow-xl border border-border-secondary">
                     <div className="flex items-center justify-center py-12">
-                        <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                        <div className="w-8 h-8 border-4 border-accent-primary border-t-transparent rounded-full animate-spin"></div>
                     </div>
                 </div>
             </div>
@@ -85,7 +97,7 @@ export default function ModuleView({ teamId, agentId, serverId, projectId, onClo
                 <div className="w-full max-w-5xl rounded-lg bg-bg-card p-6 shadow-xl border border-border-secondary">
                     <p className="text-text-muted text-center">Failed to load project data</p>
                     <button 
-                        className="mt-4 w-full rounded bg-bg-surface py-2 text-white hover:bg-indigo-500" 
+                        className="mt-4 w-full rounded-lg border border-border-primary bg-bg-surface py-2 text-text-primary transition-colors hover:bg-bg-card-hover" 
                         onClick={onClose}
                     >
                         Close
@@ -93,6 +105,12 @@ export default function ModuleView({ teamId, agentId, serverId, projectId, onClo
                 </div>
             </div>
         )
+    }
+
+    const openModpackSetup = () => {
+        setModpackName(project.title || '')
+        setModpackThumbnailUrl(project.icon_url || '')
+        setShowModpackSetup(true)
     }
 
     return (
@@ -142,7 +160,7 @@ export default function ModuleView({ teamId, agentId, serverId, projectId, onClo
                     </div>
                     {!isInstalled && (
                         <button
-                            className="w-40 h-20 rounded bg-indigo-600 text-white hover:bg-indigo-500 transition-colors text-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                            className="flex h-20 w-40 items-center justify-center rounded-lg border border-transparent bg-accent-primary text-lg text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
                             disabled={!selectedVersion || resolvingDeps}
                             onClick={handleInstallClick}
                         >
@@ -205,7 +223,7 @@ export default function ModuleView({ teamId, agentId, serverId, projectId, onClo
                                             <div className="flex items-center gap-2">
                                                 <span className="text-sm font-medium text-text-primary">{version.version_number}</span>
                                                 {isBest && (
-                                                    <span className="text-xs bg-indigo-600 text-white px-1.5 py-0.5 rounded font-medium">
+                                                    <span className="rounded bg-accent-primary px-1.5 py-0.5 text-xs font-medium text-white">
                                                         Best Match
                                                     </span>
                                                 )}
@@ -264,21 +282,21 @@ export default function ModuleView({ teamId, agentId, serverId, projectId, onClo
                         <div className="p-6">
                             {installing ? (
                                 <div className="flex flex-col items-center justify-center py-8">
-                                    <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                                    <div className="w-8 h-8 border-4 border-accent-primary border-t-transparent rounded-full animate-spin mb-4"></div>
                                     <p className="text-text-primary text-lg">Installing {project?.project_type || 'module'}...</p>
                                     <p className="text-text-muted text-sm mt-2">This may take a few moments</p>
                                 </div>
                             ) : installSuccess ? (
                                 <div className="flex flex-col items-center justify-center py-8">
-                                    <CheckCircle size={48} className="text-green-500 mb-4" />
+                                    <CheckCircle size={48} className="mb-4 text-status-online" />
                                     <p className="text-text-primary text-lg">{project?.project_type ? project.project_type.charAt(0).toUpperCase() + project.project_type.slice(1) : 'Module'} installed successfully!</p>
                                     <p className="text-text-muted text-sm mt-2">{project.title} has been installed</p>
                                 </div>
                             ) : installError ? (
                                 <div className="flex flex-col items-center justify-center py-8">
-                                    <X size={48} className="text-red-500 mb-4" />
+                                    <X size={48} className="mb-4 text-error" />
                                     <p className="text-text-primary text-lg">Installation failed</p>
-                                    <p className="text-red-400 text-sm mt-2 text-center">{installError}</p>
+                                    <p className="mt-2 text-center text-sm text-error-light">{installError}</p>
                                 </div>
                             ) : null}
                         </div>
@@ -339,15 +357,15 @@ export default function ModuleView({ teamId, agentId, serverId, projectId, onClo
                             {/* Warnings */}
                             {resolvedDeps.warnings.length > 0 && (
                                 <div className="mb-4">
-                                    <div className="flex items-center gap-2 text-yellow-500 mb-2">
+                                    <div className="mb-2 flex items-center gap-2 text-warning">
                                         <AlertTriangle size={16} />
                                         <p className="font-semibold text-sm">Warnings:</p>
                                     </div>
                                     <div className="space-y-2">
                                         {resolvedDeps.warnings.map((warning, idx) => (
-                                            <div key={idx} className="flex items-start gap-2 p-2 bg-yellow-900/20 border border-yellow-600/30 rounded">
-                                                <AlertCircle size={14} className="text-yellow-500 mt-0.5 flex-shrink-0" />
-                                                <p className="text-sm text-yellow-200">{warning}</p>
+                                            <div key={idx} className="flex items-start gap-2 rounded border border-warning/30 bg-warning/10 p-2">
+                                                <AlertCircle size={14} className="mt-0.5 flex-shrink-0 text-warning" />
+                                                <p className="text-sm text-warning">{warning}</p>
                                             </div>
                                         ))}
                                     </div>
@@ -371,10 +389,95 @@ export default function ModuleView({ teamId, agentId, serverId, projectId, onClo
                                     setShowResolveModal(false)
                                     handleModuleInstall(resolvedDeps.modules)
                                 }}
-                                className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors"
+                                className="flex-1 rounded-lg border border-transparent bg-accent-primary py-2 text-white transition-colors hover:bg-accent-hover"
                             >
                                 Install {resolvedDeps.modules.length} Module{resolvedDeps.modules.length !== 1 ? 's' : ''}
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showModpackSetup && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4">
+                    <div
+                        className="w-full max-w-4xl rounded-lg bg-bg-card shadow-xl border border-border-secondary overflow-hidden"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex items-center justify-between p-4 border-b border-border-secondary bg-bg-secondary">
+                            <h2 className="text-lg font-bold text-text-primary">Prepare Modpack Install</h2>
+                            <button
+                                onClick={() => setShowModpackSetup(false)}
+                                className="text-text-muted hover:text-text-primary text-2xl"
+                            >
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        <div className="p-6">
+                            <div className="flex gap-6 mb-6">
+                                <div className="w-1/3">
+                                    <h2 className="text-lg font-semibold mb-4">
+                                        {modpackThumbnailUrl ? 'Public server icon' : 'Private placeholder icon'}
+                                    </h2>
+                                    <div className={`w-full aspect-square rounded ${modpackThumbnailUrl ? '' : 'bg-bg-surface'} flex items-center justify-center overflow-hidden transition-colors duration-300`}>
+                                        {modpackThumbnailUrl ? (
+                                            <img
+                                                src={modpackThumbnailUrl}
+                                                alt={getInitials(modpackName || project.title)}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <span className="text-5xl text-text-primary">
+                                                {getInitials(modpackName || project.title)}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="w-2/3">
+                                    <h2 className="text-lg font-semibold mb-4">Enter a Server Name</h2>
+                                    <input
+                                        type="text"
+                                        value={modpackName}
+                                        placeholder={project.title || 'My Modpack Server'}
+                                        className="mb-4 w-full rounded-lg border border-border-primary bg-bg-surface p-3 text-text-primary transition-colors focus:border-accent-primary focus:outline-none"
+                                        onChange={(e) => setModpackName(e.target.value)}
+                                    />
+
+                                    <h3 className="text-sm font-semibold mt-2 mb-2 text-text-secondary">Custom Thumbnail URL (Optional)</h3>
+                                    <input
+                                        type="text"
+                                        value={modpackThumbnailUrl}
+                                        placeholder="https://example.com/image.png"
+                                        className="mb-4 w-full rounded-lg border border-border-primary bg-bg-surface p-3 text-text-primary transition-colors focus:border-accent-primary focus:outline-none"
+                                        onChange={(e) => setModpackThumbnailUrl(e.target.value)}
+                                    />
+
+                                    <p className="text-sm text-text-muted leading-relaxed">
+                                        Add an image link to set your server icon for players.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-4">
+                                <button
+                                    onClick={() => setShowModpackSetup(false)}
+                                    className="flex-1 rounded-lg border border-border-primary bg-bg-surface py-2 transition-colors hover:bg-bg-card-hover"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setShowModpackSetup(false)
+                                        handleModuleInstall()
+                                    }}
+                                    disabled={!modpackName.trim()}
+                                    className="flex-1 rounded-lg border border-transparent bg-accent-primary py-2 text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-bg-tertiary disabled:text-text-muted"
+                                >
+                                    Continue
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -388,8 +491,8 @@ export default function ModuleView({ teamId, agentId, serverId, projectId, onClo
         const projectType = project.project_type
 
         if (projectType === 'modpack') {
-            // For modpacks: install directly without dependency resolution
-            await handleModuleInstall()
+            // Modpacks need the same naming/icon step as custom servers
+            openModpackSetup()
             return
         }
 
@@ -448,7 +551,8 @@ export default function ModuleView({ teamId, agentId, serverId, projectId, onClo
                 await auth_client.post(`/command/${agentId}`, {
                     command: {
                         type: 'create_modpack',
-                        name: project.title,
+                        name: modpackName.trim() || project.title,
+                        server_thumbnail: modpackThumbnailUrl.trim() || undefined,
                         manifest_hash: mrpackFile.hashes.sha1 || mrpackFile.hashes.sha512,
                         project_id: projectId,
                         version_id: selectedVersion.id,

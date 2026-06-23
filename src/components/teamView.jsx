@@ -1,11 +1,11 @@
 import {useTeamConnection} from '../hooks/useTeamConnection.jsx'
 import {useTeamStatus, useTeamIsLoading} from '../hooks/useTeamStatus.jsx'
-import { Copy, Package, Settings, MoreVertical, Trash2 } from "lucide-react"
+import { Copy, Package, Settings, MoreVertical, Trash2, FileTerminal } from "lucide-react"
 import {useTeamData} from '../hooks/useTeamData.jsx'
 import {useApi} from '../api/client.jsx'
 import {useState, useEffect} from 'react'
 
-export default function TeamView({ teamData, onSelectServer, onInstallModpack }) {
+export default function TeamView({ teamData, onSelectServer, onSelectAgent, onInstallModpack }) {
     useTeamConnection(teamData.team_id)
     const team_data = useTeamData(teamData.team_id)
     const status = useTeamStatus(teamData.team_id)
@@ -43,11 +43,11 @@ export default function TeamView({ teamData, onSelectServer, onInstallModpack })
     }, [dropdownOpen])
 
     const loader_config = [
-        { id: 'vanilla', label: 'Vanilla', icon: <Package size={40} className="mt-10 text-gray-400" />, noVersions: true },
-        { id: 'fabric', label: 'Fabric', icon: <Package size={40} className="mb-3 text-blue-400" /> },
-        { id: 'forge', label: 'Forge', icon: <Settings size={40} className="mb-3 text-emerald-400" /> },
-        { id: 'neoforge', label: 'NeoForge', icon: <Settings size={40} className="mb-3 text-orange-400" /> },
-        { id: 'quilt', label: 'Quilt', icon: <Package size={40} className="mb-3 text-purple-400" /> },
+        { id: 'vanilla', label: 'Vanilla', icon: <Package size={40} className="mt-10 text-text-muted" />, noVersions: true },
+        { id: 'fabric', label: 'Fabric', icon: <Package size={40} className="mb-3 text-text-secondary" /> },
+        { id: 'forge', label: 'Forge', icon: <Settings size={40} className="mb-3 text-status-online" /> },
+        { id: 'neoforge', label: 'NeoForge', icon: <Settings size={40} className="mb-3 text-status-starting" /> },
+        { id: 'quilt', label: 'Quilt', icon: <Package size={40} className="mb-3 text-accent-light" /> },
     ]
 
     if (isLoading || status === 'idle') {
@@ -57,7 +57,7 @@ export default function TeamView({ teamData, onSelectServer, onInstallModpack })
     if (status === 'connecting' || status === 'reconciling') {
         return (
             <div className="flex flex-col items-center justify-center h-64">
-                <div className="w-8 h-8 border-2 border-purple-300 border-t-purple-500 rounded-full animate-spin mb-4"></div>
+                <div className="w-8 h-8 border-2 border-border-primary border-t-accent-primary rounded-full animate-spin mb-4"></div>
                 <p className="text-text-muted">
                     {status === 'connecting' ? 'Connecting to team...' : 'Reconciling team data...'}
                 </p>
@@ -68,14 +68,14 @@ export default function TeamView({ teamData, onSelectServer, onInstallModpack })
     if (status === 'reconnecting') {
         return (
             <div className="flex flex-col items-center justify-center h-32">
-                <div className="w-6 h-6 border-2 border-yellow-300 border-t-yellow-500 rounded-full animate-spin mb-3"></div>
-                <p className="text-yellow-500 text-sm">Reconnecting...</p>
+                <div className="w-6 h-6 border-2 border-border-primary border-t-status-starting rounded-full animate-spin mb-3"></div>
+                <p className="text-status-starting text-sm">Reconnecting...</p>
             </div>
         )
     }
 
     if (status === 'error') {
-        return <p className="text-red-500">Error loading team data</p>
+        return <p className="text-error">Error loading team data</p>
     }
 
     const copyTeamIdentifier = () => {
@@ -89,9 +89,9 @@ export default function TeamView({ teamData, onSelectServer, onInstallModpack })
 
     const getThumbnailColor = (identifier) => {
         const colors = [
-            "bg-red-500", "bg-orange-500", "bg-amber-500", "bg-emerald-500",
-            "bg-teal-500", "bg-cyan-500", "bg-blue-500", "bg-indigo-500",
-            "bg-violet-500", "bg-fuchsia-500", "bg-pink-500", "bg-rose-500"
+            "bg-status-offline", "bg-status-starting", "bg-warning", "bg-status-online",
+            "bg-[#0f766e]", "bg-[#0891b2]", "bg-[#2563eb]", "bg-[#4f46e5]",
+            "bg-[#7c3aed]", "bg-[#c026d3]", "bg-[#db2777]", "bg-[#e11d48]"
         ]
 
         let hash = 0
@@ -182,16 +182,16 @@ export default function TeamView({ teamData, onSelectServer, onInstallModpack })
     const handleCreateCustomServer = () => {
         client.get('/version')
         .then(response => {
+            const firstVersion = response.data?.[0]
             setMcVersions(response.data)
             setServerCreateModalState('select_version')
-            setSelectedMcVersion(response.data[0])
+            setSelectedMcVersion(firstVersion || '')
             setAvailableLoaders({})
             setSelectedLoaderVersions({})
             setSelectedLoaderType(null)
-            handleSelectedMcVersionChange(response.data[0])
-            setSelectedLoaderVersions()
-            availableLoaders[`${loader.id}_main`]
-
+            if (firstVersion) {
+                handleSelectedMcVersionChange(firstVersion)
+            }
         })
     }
 
@@ -241,7 +241,7 @@ export default function TeamView({ teamData, onSelectServer, onInstallModpack })
             }
         }
         auth_client.post(`/command/${serverCreateAgentId}`, {command})
-        .then(response => {
+        .then(() => {
             setServerCreateModalState(false)
             setServerThumbnailUrl("")
         })
@@ -255,27 +255,24 @@ export default function TeamView({ teamData, onSelectServer, onInstallModpack })
 
     return (
         <div className="max-h-[90vh] overflow-y-auto pr-2">
-            <div className="flex items-baseline space-x-2">
-                {/* Team name */}
+            <div className="mb-6 flex items-center gap-3 rounded-xl border border-border-primary bg-bg-card px-4 py-3 shadow-lg">
                 <h1 className="text-2xl font-bold text-text-primary">
                     {teamData?.team_name}
                 </h1>
 
-                {/* slug */}
-                <span className="text-sm text-gray-500">
+                <span className="text-sm text-text-muted">
                     @{teamData?.slug}
                 </span>
 
-                {/* copy button */}
                 <button
                     onClick={() => copyTeamIdentifier()}
-                    className="text-gray-400 hover:text-gray-200 transition-colors"
+                    className="text-text-muted hover:text-text-primary transition-colors"
                 >
                     <Copy size={16} />
                 </button>
                 <button
                     onClick={() => handleLinkingCode()}
-                    className="ml-auto px-3 py-1.5 mr-4 text-sm font-medium bg-bg-surface text-white rounded-lg hover:bg-accent-primary transition-colors"
+                    className="ml-auto rounded-lg border border-border-primary bg-bg-surface px-3 py-1.5 mr-0 text-sm font-medium text-text-primary transition-colors hover:bg-bg-card-hover"
                 >
                     Link Agent
                 </button>
@@ -283,20 +280,20 @@ export default function TeamView({ teamData, onSelectServer, onInstallModpack })
 
             {/* Linking Code Popup */}
             {showLinkingModal && (
-                <div className="fixed inset-0 flex items-center justify-center bg-black/50">
-                    <div className="bg-bg-modal p-5 rounded-xl w-80">
-                        <h2 className="text-lg font-semibold text-white mb-3">
+                <div className="fixed inset-0 flex items-center justify-center bg-black/60">
+                    <div className="w-80 rounded-xl border border-border-primary bg-bg-modal p-5 shadow-2xl">
+                        <h2 className="mb-3 text-lg font-semibold text-text-primary">
                             Agent Linking Code
                         </h2>
 
-                        <div className="flex items-center gap-2 bg-bg-primary p-2 rounded-lg">
-                            <span className="text-gray-300 text-sm flex-1 break-all">
+                        <div className="flex items-center gap-2 rounded-lg border border-border-primary bg-bg-surface p-2">
+                            <span className="flex-1 break-all text-sm text-text-primary">
                                 {linkingCode}
                             </span>
 
                             <button
                                 onClick={copyLinkingCode}
-                                className="text-gray-400 hover:text-white"
+                                className="text-text-muted transition-colors hover:text-text-primary"
                             >
                                 <Copy size={16} />
                             </button>
@@ -304,7 +301,7 @@ export default function TeamView({ teamData, onSelectServer, onInstallModpack })
 
                         <button
                             onClick={() => setShowLinkingModal(false)}
-                            className="mt-4 w-full py-1.5 text-sm bg-gray-700 text-white rounded-lg hover:bg-gray-600"
+                            className="mt-4 w-full rounded-lg border border-border-primary bg-bg-surface py-1.5 text-sm text-text-primary transition-colors hover:bg-bg-card-hover"
                         >
                             Close
                         </button>
@@ -314,19 +311,19 @@ export default function TeamView({ teamData, onSelectServer, onInstallModpack })
 
             {/* Delete Agent Confirmation Modal */}
             {showDeleteModal && agentToDelete && (
-                <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
-                    <div className="bg-bg-modal p-6 rounded-xl w-96 max-w-[90vw]">
-                        <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-                            <Trash2 className="text-red-400" size={20} />
+                <div className="fixed inset-0 flex items-center justify-center bg-black/60 z-50">
+                    <div className="w-96 max-w-[90vw] rounded-xl border border-border-primary bg-bg-modal p-6 shadow-2xl">
+                        <h2 className="mb-4 flex items-center gap-2 text-xl font-semibold text-text-primary">
+                            <Trash2 className="text-error" size={20} />
                             Delete Agent
                         </h2>
                         
                         <div className="mb-6">
-                            <p className="text-gray-300 mb-3">
-                                Are you sure you want to delete the agent "<span className="text-white font-medium">{agentToDelete.name}</span>"?
+                            <p className="mb-3 text-text-secondary">
+                                Are you sure you want to delete the agent "<span className="font-medium text-text-primary">{agentToDelete.name}</span>"?
                             </p>
-                            <div className="bg-yellow-900/30 border border-yellow-600/50 rounded-lg p-3">
-                                <p className="text-yellow-300 text-sm">
+                            <div className="rounded-lg border border-warning/40 bg-warning/10 p-3">
+                                <p className="text-sm text-warning">
                                     <strong>Warning:</strong> This will only delete the agent from the API. 
                                     The agent software will still be installed on the computer and needs to be manually uninstalled.
                                 </p>
@@ -339,14 +336,14 @@ export default function TeamView({ teamData, onSelectServer, onInstallModpack })
                                     setShowDeleteModal(false)
                                     setAgentToDelete(null)
                                 }}
-                                className="flex-1 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                                className="flex-1 rounded-lg border border-border-primary bg-bg-surface py-2 text-text-primary transition-colors hover:bg-bg-card-hover"
                                 disabled={deletingAgent}
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={confirmDeleteAgent}
-                                className="flex-1 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                                className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-transparent bg-error py-2 text-white transition-colors hover:opacity-90"
                                 disabled={deletingAgent}
                             >
                                 {deletingAgent ? (
@@ -382,7 +379,7 @@ export default function TeamView({ teamData, onSelectServer, onInstallModpack })
                                         {/* Status Indicator Wrapper */}
                                         <div className="relative group flex items-center justify-center">
                                             <div className={`w-3 h-3 rounded-full ${getAgentStatusColor(agent.agent_status)}`} />
-                                            <div className="absolute bottom-full mb-2 hidden group-hover:block px-2 py-1 bg-gray-800 text-white text-xs rounded shadow-lg whitespace-nowrap capitalize z-50">
+                                            <div className="absolute bottom-full mb-2 hidden group-hover:block px-2 py-1 bg-bg-modal text-text-primary text-xs rounded shadow-lg whitespace-nowrap capitalize z-50">
                                                 {agent.agent_status}
                                             </div>
                                         </div>
@@ -393,17 +390,27 @@ export default function TeamView({ teamData, onSelectServer, onInstallModpack })
                                     <div className="relative dropdown-menu">
                                         <button
                                             onClick={() => setDropdownOpen(dropdownOpen === agentId ? null : agentId)}
-                                            className="p-1 text-gray-400 hover:text-gray-200 transition-colors"
+                                            className="p-1 text-text-muted transition-colors hover:text-text-primary"
                                         >
                                             <MoreVertical size={16} />
                                         </button>
                                         
                                         {/* Dropdown menu */}
                                         {dropdownOpen === agentId && (
-                                            <div className="absolute right-0 mt-1 w-48 bg-bg-modal border border-border-primary rounded-lg shadow-lg z-50">
+                                            <div className="absolute right-0 mt-1 w-48 rounded-lg border border-border-primary bg-bg-modal shadow-lg z-50">
+                                                <button
+                                                    onClick={() => {
+                                                        setDropdownOpen(null)
+                                                        onSelectAgent?.(agentId)
+                                                    }}
+                                                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-text-primary transition-colors hover:bg-bg-surface"
+                                                >
+                                                    <FileTerminal size={14} />
+                                                    Agent Details
+                                                </button>
                                                 <button
                                                     onClick={() => handleDeleteAgent(agentId, agent.agent_name)}
-                                                    className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm text-red-400 hover:bg-bg-surface hover:text-red-300 transition-colors"
+                                                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-error transition-colors hover:bg-bg-surface"
                                                 >
                                                     <Trash2 size={14} />
                                                     Delete Agent
@@ -419,7 +426,7 @@ export default function TeamView({ teamData, onSelectServer, onInstallModpack })
                                         {agentServers.map(server => (
                                             <div
                                                 key={server.server_id}
-                                                className="bg-bg-surface rounded-lg p-4 cursor-pointer hover:bg-bg-card-hover transition-colors"
+                                                className="cursor-pointer rounded-xl border border-border-primary bg-bg-surface p-4 transition-colors hover:bg-bg-card-hover"
                                                 onClick={() => onSelectServer(agentId, server.server_id, server.server_name)}
                                             >
                                                 <div className={`w-full aspect-square rounded mb-3 flex items-center justify-center overflow-hidden transition-colors duration-300 ${
@@ -453,10 +460,10 @@ export default function TeamView({ teamData, onSelectServer, onInstallModpack })
 
                                                         {/* Loader and Version on the second line */}
                                                         <div className="flex items-center gap-1 mt-0.5">
-                                                            <span className="text-xs text-gray-400 capitalize truncate">
+                                                            <span className="text-xs text-text-muted capitalize truncate">
                                                             {server.properties.loader_type}
                                                             </span>
-                                                            <span className="text-xs text-gray-400 truncate">
+                                                            <span className="text-xs text-text-muted truncate">
                                                             {server.properties.mc_version}
                                                             </span>
                                                         </div>
@@ -466,18 +473,16 @@ export default function TeamView({ teamData, onSelectServer, onInstallModpack })
                                                     <div className="relative group flex items-center justify-center">
                                                         <div className={`w-5 h-5 shadow-lg rounded-full ${getServerStatusColor(server.server_status)}`} />
                                                         
-                                                        <div className="absolute bottom-full mb-2 hidden group-hover:block px-2 py-1 bg-gray-800 text-white text-xs rounded shadow-lg whitespace-nowrap capitalize z-50">
+                                                        <div className="absolute bottom-full mb-2 hidden group-hover:block px-2 py-1 bg-bg-modal text-text-primary text-xs rounded shadow-lg whitespace-nowrap capitalize z-50">
                                                             {server.server_status}
                                                         </div>
                                                     </div>
                                                 </div>
                                                 
-                                                {/* Control Buttons */}
                                                 <div className="flex space-x-2">
-                                                    {/* Start / Stop */}
                                                     {server.server_status === 'offline' && !loadingServersAction[server.server_id] && (
                                                         <button
-                                                            className="flex-1 px-3 py-1 bg-success hover:bg-success-hover text-white text-sm rounded transition-colors"
+                                                            className="flex-1 rounded-lg border border-transparent bg-status-online px-3 py-1 text-sm text-white transition-colors hover:opacity-90"
                                                             onClick={(e) => {
                                                                 e.stopPropagation()
                                                                 handleServerAction(agentId, server.server_id, 'start_server')
@@ -489,7 +494,7 @@ export default function TeamView({ teamData, onSelectServer, onInstallModpack })
 
                                                     {server.server_status === 'online' && !loadingServersAction[server.server_id] && (
                                                         <button
-                                                            className="flex-1 px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm rounded transition-colors"
+                                                            className="flex-1 rounded-lg border border-transparent bg-error px-3 py-1 text-sm text-white transition-colors hover:opacity-90"
                                                             onClick={(e) => {
                                                                 e.stopPropagation()
                                                                 handleServerAction(agentId, server.server_id, 'stop_server')
@@ -501,19 +506,18 @@ export default function TeamView({ teamData, onSelectServer, onInstallModpack })
 
                                                     {(server.server_status === 'starting' || server.server_status === 'stopping' || loadingServersAction[server.server_id]) && (
                                                         <button
-                                                            className="flex-1 px-3 py-1 bg-bg-tertiary text-sm rounded cursor-not-allowed flex items-center justify-center"
+                                                            className="flex-1 flex items-center justify-center rounded-lg border border-border-primary bg-bg-tertiary px-3 py-1 text-sm cursor-not-allowed"
                                                             disabled
                                                         >
-                                                            <div className="w-5 h-5 border-2 border-purple-300 border-t-purple-500 rounded-full animate-spin"></div>
+                                                            <div className="w-5 h-5 border-2 border-border-primary border-t-accent-primary rounded-full animate-spin"></div>
                                                         </button>
                                                     )}
 
-                                                    {/* Restart */}
                                                     <button
-                                                        className={`flex-1 px-3 py-1 text-white text-sm rounded transition-colors ${
+                                                        className={`flex-1 rounded-lg px-3 py-1 text-sm text-white transition-colors ${
                                                             server.server_status === 'online' && !loadingServersAction[server.server_id]
-                                                                ? 'bg-yellow-600 hover:bg-yellow-700'
-                                                                : 'bg-gray-600 cursor-not-allowed'
+                                                                ? 'bg-status-starting hover:opacity-90'
+                                                                : 'bg-bg-tertiary cursor-not-allowed'
                                                         }`}
                                                         disabled={server.server_status !== 'online' || loadingServersAction[server.server_id]}
                                                         onClick={(e) => {
@@ -537,14 +541,14 @@ export default function TeamView({ teamData, onSelectServer, onInstallModpack })
                                             </div>
                                         </button>
                                         {ServerCreateModalState && (
-                                            <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
-                                                <div className={`bg-bg-modal p-6 rounded-xl ${ServerCreateModalState === "select_version" ? "w-200" : ServerCreateModalState === "input_name" ? "w-200" : "w-lg"} text-white shadow-2xl`}>
-                                                <h2 className="text-xl font-bold mb-4">Create Server</h2>
+                                            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+                                                <div className={`rounded-xl border border-border-primary bg-bg-modal p-6 text-text-primary shadow-2xl ${ServerCreateModalState === "select_version" ? "w-200" : ServerCreateModalState === "input_name" ? "w-200" : "w-lg"}`}>
+                                                <h2 className="mb-4 text-xl font-bold">Create Server</h2>
 
                                                 {/* Mode Selection Cards */}
                                                 {ServerCreateModalState === 'select_install_type' && (
                                                     <div>
-                                                        <h2 className="text-lg font-semibold mb-4">Select Install Method</h2>
+                                                        <h2 className="mb-4 text-lg font-semibold">Select Install Method</h2>
                                                         <div className="flex gap-4 mb-6">
                                                             {/* Modpack Card */}
                                                             <button
@@ -553,18 +557,18 @@ export default function TeamView({ teamData, onSelectServer, onInstallModpack })
                                                                     setServerThumbnailUrl("")
                                                                     onInstallModpack(serverCreateAgentId)
                                                                 }}
-                                                                className="flex-1 flex flex-col items-center justify-center p-6 rounded-xl border-2 transition-all duration-200 bg-bg-surface border-border-secondary hover:bg-bg-primary hover:border-accent-primary"
+                                                                className="flex-1 flex flex-col items-center justify-center rounded-xl border-2 border-border-primary bg-bg-surface p-6 transition-all duration-200 hover:border-accent-primary hover:bg-bg-card-hover"
                                                             >
-                                                                <Package size={40} className="mb-3 text-blue-400" />
+                                                                <Package size={40} className="mb-3 text-text-secondary" />
                                                                 <span className="font-semibold">Modpack</span>
                                                             </button>
 
                                                             {/* Custom Card */}
                                                             <button
                                                                 onClick={handleCreateCustomServer}
-                                                                className="flex-1 flex flex-col items-center justify-center p-6 rounded-xl border-2 transition-all duration-200 bg-bg-surface border-border-secondary hover:bg-bg-primary hover:border-accent-primary"
+                                                                className="flex-1 flex flex-col items-center justify-center rounded-xl border-2 border-border-primary bg-bg-surface p-6 transition-all duration-200 hover:border-accent-primary hover:bg-bg-card-hover"
                                                             >
-                                                                <Settings size={40} className="mb-3 text-emerald-400" />
+                                                                <Settings size={40} className="mb-3 text-status-online" />
                                                                 <span className="font-semibold">Custom</span>
                                                             </button>
                                                         </div>
@@ -573,11 +577,11 @@ export default function TeamView({ teamData, onSelectServer, onInstallModpack })
 
                                                 {ServerCreateModalState === 'select_version' && (
                                                     <div>
-                                                        <h2 className="text-lg font-semibold mb-4">Select Minecraft Version</h2>
+                                                        <h2 className="mb-4 text-lg font-semibold">Select Minecraft Version</h2>
                                                         <select
                                                             value={selectedMcVersion}
                                                             onChange={(e) => handleSelectedMcVersionChange(e.target.value)}
-                                                            className="w-full p-3 mb-6 bg-bg-surface text-white rounded-lg focus:outline-none transition-colors"
+                                                            className="mb-6 w-full rounded-lg border border-border-primary bg-bg-surface p-3 text-text-primary focus:border-accent-primary focus:outline-none"
                                                         >
                                                             {mcVersions.map((version) => (
                                                             <option key={version} value={version}>
@@ -585,15 +589,15 @@ export default function TeamView({ teamData, onSelectServer, onInstallModpack })
                                                             </option>
                                                             ))}
                                                         </select>
-                                                        <h2 className="text-lg font-semibold mb-4">Select Server Type</h2>
+                                                        <h2 className="mb-4 text-lg font-semibold">Select Server Type</h2>
                                                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                                                             {loader_config.filter((loader) => loader.noVersions || availableLoaders[`${loader.id}_main`]).map((loader) => (
                                                                 <button
                                                                     key={loader.id}
                                                                     className={`flex-1 flex flex-col items-center justify-between p-6 rounded-xl border-2 transition-all duration-200 ${
                                                                     selectedLoaderType === loader.id
-                                                                        ? 'border-border-primary bg-bg-primary'
-                                                                        : 'border-border-secondary bg-bg-surface hover:bg-bg-card'
+                                                                        ? 'border-accent-primary bg-bg-secondary'
+                                                                        : 'border-border-primary bg-bg-surface hover:bg-bg-card-hover'
                                                                     }`}
                                                                     onClick={() => setSelectedLoaderType(loader.id)}
                                                                 >
@@ -607,7 +611,7 @@ export default function TeamView({ teamData, onSelectServer, onInstallModpack })
                                                                         <select
                                                                             value={selectedLoaderVersions[loader.id] || availableLoaders[`${loader.id}_main`]}
                                                                             onChange={(e) => handleLoaderVersionChange(loader.id, e.target.value)}
-                                                                            className="w-full p-2 mb-4 bg-bg-surface text-white rounded-lg border-2 border-border-secondary focus:outline-none focus:border-purple-500"
+                                                                            className="mb-4 w-full rounded-lg border-2 border-border-primary bg-bg-surface p-2 text-text-primary focus:border-accent-primary focus:outline-none"
                                                                         >
                                                                             {availableLoaders[loader.id]?.map((version) => (
                                                                             <option key={version} value={version}>
@@ -627,7 +631,7 @@ export default function TeamView({ teamData, onSelectServer, onInstallModpack })
                                                         <div className="flex gap-6 mb-6">
                                                             {/* Left - Thumbnail Preview */}
                                                             <div className="w-1/3">
-                                                                <h2 className="text-lg font-semibold mb-4">{serverThumbnailUrl ? "Public server icon": "Private placeholder icon"}</h2>
+                                                                <h2 className="mb-4 text-lg font-semibold">{serverThumbnailUrl ? "Public server icon": "Private placeholder icon"}</h2>
                                                                 <div className={`w-full aspect-square rounded ${serverThumbnailUrl ? '' : getThumbnailColor(serverName || 'Server')} flex items-center justify-center overflow-hidden transition-colors duration-300`}>
                                                                     {serverThumbnailUrl ? (
                                                                         <img src={serverThumbnailUrl} alt={getInitials(serverName)} className="w-full h-full object-cover" />
@@ -640,23 +644,23 @@ export default function TeamView({ teamData, onSelectServer, onInstallModpack })
                                                             {/* Right - Input Fields */}
                                                             <div className="w-2/3">
  
-                                                                <h2 className="text-lg font-semibold mb-4">Enter a Public Server Name</h2>
+                                                                <h2 className="mb-4 text-lg font-semibold">Enter a Public Server Name</h2>
                                                                 <input
                                                                     type="text"
                                                                     placeholder={`${selectedLoaderType} ${selectedMcVersion} Server`}
-                                                                    className="w-full p-3 mb-4 focus:outline-none bg-bg-surface text-white rounded-lg transition-colors"
+                                                                    className="mb-4 w-full rounded-lg border border-border-primary bg-bg-surface p-3 text-text-primary transition-colors focus:border-accent-primary focus:outline-none"
                                                                     onChange={(e) => setServerName(e.target.value)}
                                                                 />
 
-                                                                <h3 className="text-sm font-semibold mt-2 mb-2 text-text-secondary">Custom Thumbnail URL (Optional)</h3>
+                                                                <h3 className="mb-2 mt-2 text-sm font-semibold text-text-secondary">Custom Thumbnail URL (Optional)</h3>
                                                                 <input
                                                                     type="text"
                                                                     placeholder="https://example.com/image.png"
-                                                                    className="w-full p-3 mb-4 focus:outline-none bg-bg-surface text-white rounded-lg transition-colors"
+                                                                    className="mb-4 w-full rounded-lg border border-border-primary bg-bg-surface p-3 text-text-primary transition-colors focus:border-accent-primary focus:outline-none"
                                                                     onChange={(e) => setServerThumbnailUrl(e.target.value)}
                                                                 />
 
-                                                                <p className="text-sm text-text-muted leading-relaxed">
+                                                                <p className="text-sm leading-relaxed text-text-muted">
                                                                     <span className="text-text-muted">Add an image link to set your public server icon for players. <a href="#" className="text-text-secondary hover:underline">How?</a></span>
                                                                 </p>
 
@@ -669,13 +673,13 @@ export default function TeamView({ teamData, onSelectServer, onInstallModpack })
                                                     <div className="flex gap-4">
                                                         <button
                                                             onClick={() => {setServerCreateModalState(false); setServerThumbnailUrl("")}}
-                                                            className="flex-1 py-2 bg-bg-surface hover:bg-bg-surface-hover rounded-lg transition"
+                                                            className="flex-1 rounded-lg border border-border-primary bg-bg-surface py-2 transition-colors hover:bg-bg-card-hover"
                                                         >
                                                             Cancel
                                                         </button>
                                                         <button
                                                             onClick={() => {setServerCreateModalState("input_name"); setServerName(""); setServerThumbnailUrl("")}}
-                                                            className="flex-1 py-2 bg-success hover:bg-success-hover rounded-lg transition"
+                                                            className="flex-1 rounded-lg border border-transparent bg-accent-primary py-2 text-white transition-colors hover:bg-accent-hover"
                                                         >
                                                             Confirm
                                                         </button>
@@ -684,14 +688,14 @@ export default function TeamView({ teamData, onSelectServer, onInstallModpack })
                                                     <div className="flex gap-4">
                                                         <button
                                                             onClick={() => {setServerCreateModalState(false); setServerThumbnailUrl("")}}
-                                                            className="flex-1 py-2 bg-bg-surface hover:bg-bg-surface-hover rounded-lg transition"
+                                                            className="flex-1 rounded-lg border border-border-primary bg-bg-surface py-2 transition-colors hover:bg-bg-card-hover"
                                                         >
                                                             Cancel
                                                         </button>
                                                         <button
                                                             onClick={() => handleServerCreateFinal()}
                                                             disabled={!serverName}
-                                                            className="flex-1 py-2 bg-success hover:bg-success-hover rounded-lg transition disabled:bg-bg-surface disabled:hover:bg-bg-surface disabled:cursor-not-allowed"
+                                                            className="flex-1 rounded-lg border border-transparent bg-accent-primary py-2 text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-bg-tertiary disabled:text-text-muted"
                                                         >
                                                             Create server
                                                         </button>
@@ -699,7 +703,7 @@ export default function TeamView({ teamData, onSelectServer, onInstallModpack })
                                                 :
                                                     <button
                                                         onClick={() => {setServerCreateModalState(false); setServerThumbnailUrl("")}}
-                                                        className="w-full py-2 bg-bg-surface hover:bg-bg-surface rounded-lg transition"
+                                                        className="w-full rounded-lg border border-border-primary bg-bg-surface py-2 transition-colors hover:bg-bg-card-hover"
                                                     >
                                                         Cancel
                                                     </button>

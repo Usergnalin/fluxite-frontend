@@ -22,11 +22,11 @@ export default function ServerView({ teamId, agentId, serverId, serverName, onBa
 
     const getStatusColor = (s) => {
         switch (s) {
-            case 'online': return 'bg-green-500'
-            case 'offline': return 'bg-gray-500'
-            case 'starting': return 'bg-yellow-500'
-            case 'stopping': return 'bg-orange-500'
-            default: return 'bg-gray-500'
+            case 'online': return 'bg-status-online'
+            case 'offline': return 'bg-status-offline'
+            case 'starting': return 'bg-status-starting'
+            case 'stopping': return 'bg-status-stopping'
+            default: return 'bg-status-offline'
         }
     }
 
@@ -35,31 +35,27 @@ export default function ServerView({ teamId, agentId, serverId, serverName, onBa
 
     return (
         <div className="max-h-[90vh] overflow-y-auto pr-2 pl-4 pr-4">
-            {/* Header Row */}
-            <div className="flex items-center gap-4 mb-4">
-                <button
-                    onClick={onBack}
-                    className="px-3 py-1.5 text-sm font-medium bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
-                >
-                    ← Back
-                </button>
-                <h1 className="text-3xl font-bold text-text-primary">{serverName}</h1>
-
-                {/* Status Indicator */}
-                <div className="flex items-center gap-2">
-                    <div className={`w-5 h-5 rounded-full ${getStatusColor(status)}`} />
-                    <span className="text-md text-text-primary capitalize">{status}</span>
+            <div className="mb-4 rounded-xl border border-border-primary bg-bg-card px-4 py-3 shadow-[0_1px_0_rgba(255,255,255,0.03)]">
+                <div className="flex items-center gap-4">
+                    <button
+                        onClick={onBack}
+                        className="px-3 py-1.5 text-sm font-medium bg-bg-tertiary text-text-primary rounded-lg hover:bg-bg-card-hover transition-colors border border-border-primary"
+                    >
+                        &larr; Back
+                    </button>
+                    <h1 className="text-3xl font-bold text-text-primary">{serverName}</h1>
+                    <div className="flex items-center gap-2">
+                        <div className={`w-5 h-5 rounded-full ${getStatusColor(status)}`} />
+                        <span className="text-md text-text-primary capitalize">{status}</span>
+                    </div>
+                    {status === 'offline' && lastOnline && (
+                        <span className="text-sm text-text-muted">
+                            Last online: {new Date(lastOnline).toLocaleString()}
+                        </span>
+                    )}
                 </div>
-
-                {/* Last Online (if offline) */}
-                {status === 'offline' && lastOnline && (
-                    <span className="text-sm text-text-muted">
-                        Last online: {new Date(lastOnline).toLocaleString()}
-                    </span>
-                )}
             </div>
 
-            {/* Tab Navigation */}
             <div className="flex gap-1 mb-6 border-b border-border-secondary">
                 {TABS.map(tab => (
                     <button
@@ -76,7 +72,6 @@ export default function ServerView({ teamId, agentId, serverId, serverName, onBa
                 ))}
             </div>
 
-            {/* Tab Content */}
             <div className="pb-4">
                 {activeTab === 'actions' && (
                     <ActionTab

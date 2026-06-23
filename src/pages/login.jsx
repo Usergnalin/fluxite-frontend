@@ -56,7 +56,7 @@ export default function Login() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-bg-primary p-4">
-      <div className="w-full max-w-sm bg-bg-card border border-border-primary p-8 rounded-xl shadow-lg">
+      <div className="w-full max-w-sm bg-bg-card border border-border-primary p-8 rounded-xl shadow-[0_0_0_1px_rgba(255,255,255,0.02),0_16px_40px_rgba(0,0,0,0.45)]">
         <h1 className="text-2xl font-bold text-text-primary mb-6 text-center">Welcome Back</h1>
 
         <form onSubmit={handle_login_submit} className="flex flex-col gap-4">
@@ -68,7 +68,7 @@ export default function Login() {
               value={username}
               onChange={element => {set_username(element.target.value); set_username_wrong(false)}}
               className={`w-full p-3 bg-bg-input text-text-primary placeholder-text-muted border rounded-lg outline-none transition-all ${
-                username_wrong ? 'border-red-500 focus:ring-2 focus:ring-red-500/20' : 'border-border-primary focus:ring-2 focus:ring-accent-primary/20 focus:border-accent-primary'
+                username_wrong ? 'border-error focus:ring-2 focus:ring-error/20' : 'border-border-primary focus:ring-2 focus:ring-accent-primary/20 focus:border-accent-primary'
               }`}
             />
           </div>
@@ -82,7 +82,7 @@ export default function Login() {
                 value={password}
                 onChange={element => {set_password(element.target.value); set_password_wrong(false)}}
                 className={`w-full p-3 bg-bg-input text-text-primary placeholder-text-muted border rounded-lg outline-none transition-all pr-10 ${
-                  password_wrong ? 'border-red-500 focus:ring-2 focus:ring-red-500/20' : 'border-border-primary focus:ring-2 focus:ring-accent-primary/20 focus:border-accent-primary'
+                  password_wrong ? 'border-error focus:ring-2 focus:ring-error/20' : 'border-border-primary focus:ring-2 focus:ring-accent-primary/20 focus:border-accent-primary'
                 }`}
               />
               <button
@@ -96,7 +96,7 @@ export default function Login() {
           </div>
 
           {login_error && (
-            <p className="text-red-400 text-sm text-center bg-red-900/20 border border-red-500/30 rounded-lg py-2 px-3">
+            <p className="text-error-light text-sm text-center bg-error/10 border border-error/30 rounded-lg py-2 px-3">
               {login_error}
             </p>
           )}
@@ -120,10 +120,10 @@ export default function Login() {
         <button
           onClick={handle_google_login}
           disabled={google_loading}
-          className="w-full flex items-center justify-center gap-3 bg-white hover:bg-gray-100 text-gray-700 font-medium py-3 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full flex items-center justify-center gap-3 rounded-lg border border-border-primary bg-bg-surface py-3 font-medium text-text-primary transition-colors duration-200 hover:bg-bg-card-hover disabled:cursor-not-allowed disabled:opacity-50"
         >
           {google_loading ? (
-            <div className="w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-5 h-5 border-2 border-border-primary border-t-accent-primary rounded-full animate-spin"></div>
           ) : (
             <GoogleIcon />
           )}

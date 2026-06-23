@@ -4,8 +4,11 @@ import { useSelectedTeam } from '../hooks/useTeamData.jsx'
 import { useNavigate } from 'react-router-dom'
 import TeamView from '../components/teamView.jsx'
 import ServerView from '../components/serverView.jsx'
+import AgentView from '../components/agentView.jsx'
 import ModuleBrowser from '../components/moduleBrowser.jsx'
-import { LogOut } from 'lucide-react'
+import SettingsView from '../components/settingsView.jsx'
+import { LogOut, Settings } from 'lucide-react'
+import { applyTheme, getStoredTheme, THEME_STORAGE_KEY } from '../libs/theme.js'
 
 export default function Dashboard() {
     const [user_data, set_user_data] = useState(null)
@@ -17,10 +20,17 @@ export default function Dashboard() {
     const { selectedTeam, selectTeam } = useSelectedTeam()
 
     const [viewStack, setViewStack] = useState([])
+    const [themeId, setThemeId] = useState(() => getStoredTheme())
 
     const pushView = (view) => setViewStack(stack => [...stack, view])
     const popView = () => setViewStack(stack => stack.slice(0, -1))
     const currentView = viewStack[viewStack.length - 1] || { type: 'team' }
+
+    useEffect(() => {
+        const appliedTheme = applyTheme(themeId)
+        window.localStorage.setItem(THEME_STORAGE_KEY, themeId)
+        document.title = `Fluxite - ${appliedTheme.name}`
+    }, [themeId])
 
     useEffect(() => {
         auth_client.get('/user')
@@ -33,7 +43,7 @@ export default function Dashboard() {
         .finally(() => {
             setLoading(false)
         })
-    }, [])
+    }, [auth_client])
 
     const handleLogout = async () => {
         try {
@@ -51,13 +61,22 @@ export default function Dashboard() {
             <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-text-secondary">{loading ? 'Loading...' : error ? error : user_data?.username}</span>
             </div>
-            <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 px-3 py-1.5 text-sm text-text-primary hover:text-white hover:bg-bg-surface rounded-lg transition-colors"
-            >
-                <LogOut size={16} />
-                Logout
-            </button>
+            <div className="flex items-center gap-2">
+                <button
+                    onClick={() => pushView({ type: 'settings' })}
+                    className="flex items-center gap-2 rounded-lg border border-border-primary bg-bg-surface px-3 py-1.5 text-sm text-text-primary transition-colors hover:bg-bg-card-hover"
+                >
+                    <Settings size={16} />
+                    Settings
+                </button>
+                <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-2 px-3 py-1.5 text-sm text-text-primary hover:text-white hover:bg-bg-surface rounded-lg transition-colors"
+                >
+                    <LogOut size={16} />
+                    Logout
+                </button>
+            </div>
         </nav>
 
         <div className="flex flex-1 overflow-hidden">
@@ -80,7 +99,13 @@ export default function Dashboard() {
             ))}
         </aside>
         <div className="flex-1 p-4 bg-bg-primary">
-            {!selectedTeam ? (
+            {currentView.type === 'settings' ? (
+                <SettingsView
+                    themeId={themeId}
+                    onThemeChange={setThemeId}
+                    onBack={popView}
+                />
+            ) : !selectedTeam ? (
                 <p className="text-text-muted">Select a team</p>
             ) : (
                 (() => {
@@ -103,6 +128,14 @@ export default function Dashboard() {
                                     })}
                                 />
                             )
+                        case 'agent':
+                            return (
+                                <AgentView
+                                    teamId={selectedTeam}
+                                    agentId={currentView.agentId}
+                                    onBack={popView}
+                                />
+                            )
                         case 'moduleBrowser':
                             return (
                                 <ModuleBrowser
@@ -120,6 +153,10 @@ export default function Dashboard() {
                                         agentId,
                                         serverId,
                                         serverName
+                                    })}
+                                    onSelectAgent={(agentId) => pushView({
+                                        type: 'agent',
+                                        agentId
                                     })}
                                     onInstallModpack={(agentId) => pushView({
                                         type: 'moduleBrowser',

@@ -179,7 +179,7 @@ export default function ModuleBrowser({ context, onBack }) {
         )
         
         return (
-            <div className="w-60 bg-bg-card rounded-lg p-4 flex-shrink-0 max-h-[calc(90vh-200px)] overflow-y-auto">
+            <div className="w-60 flex-shrink-0 max-h-[calc(90vh-200px)] overflow-y-auto rounded-xl border border-border-primary bg-bg-card p-4">
                 <h3 className="font-semibold text-text-primary mb-4">Filters</h3>
                 
                 {/* Versions Filter - Show for mod, plugin, and modpack */}
@@ -192,7 +192,7 @@ export default function ModuleBrowser({ context, onBack }) {
                                 {v}
                                 <button
                                     onClick={() => setFilters(f => ({...f, versions: f.versions.filter((_, idx) => idx !== i)}))}
-                                    className="text-text-muted hover:text-red-400"
+                                    className="text-text-muted hover:text-error"
                                 >×</button>
                             </span>
                         ))}
@@ -258,7 +258,7 @@ export default function ModuleBrowser({ context, onBack }) {
                 {/* Modpack Loader Filter */}
                 {activeTab === 'modpack' && (
                     <div className="mb-4">
-                        <label className="text-sm text-[#6d5da8] block mb-2">Loader Type</label>
+                        <label className="text-sm text-text-secondary block mb-2">Loader Type</label>
                         <div className="flex flex-wrap gap-1">
                             {modLoaderOptions.map(loader => (
                                 <button
@@ -290,7 +290,7 @@ export default function ModuleBrowser({ context, onBack }) {
                         <label className="text-sm text-text-muted block mb-2">Loader Type</label>
                         <div className="flex flex-wrap gap-1">
                             {filters.loaders.map(l => (
-                                <span key={l} className="text-xs bg-bg-card text-text-primary px-2 py-1 rounded capitalize">
+                                <span key={l} className="text-xs bg-bg-surface text-text-primary px-2 py-1 rounded capitalize border border-border-primary">
                                     {l}
                                 </span>
                             ))}
@@ -348,7 +348,7 @@ export default function ModuleBrowser({ context, onBack }) {
                         })
                         setVersionSearch('')
                     }}
-                    className="w-full py-2 text-sm bg-bg-surface text-text-primary rounded hover:bg-bg-card-hover transition-colors"
+                    className="w-full py-2 text-sm bg-bg-surface text-text-primary rounded-lg border border-border-primary hover:bg-bg-card-hover transition-colors"
                 >
                     Reset Filters
                 </button>
@@ -376,7 +376,7 @@ export default function ModuleBrowser({ context, onBack }) {
                     placeholder="Search projects..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full p-3 bg-bg-input text-text-primary rounded-lg focus:outline-none focus:ring-2 focus:ring-accent-primary transition-all duration-200"
+                    className="w-full rounded-lg border border-border-primary bg-bg-input p-3 text-text-primary focus:border-accent-primary focus:outline-none transition-colors"
                 />
             </div>
 
@@ -407,11 +407,11 @@ export default function ModuleBrowser({ context, onBack }) {
                             <div className="w-8 h-8 border-4 border-accent-primary border-t-transparent rounded-full animate-spin"></div>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-4">
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-1">
                             {results.map(project => (
                                 <div key={project.project_id}>
                                     <button
-                                        className="flex gap-4 bg-bg-surface text-left w-full rounded-lg p-2 hover:bg-bg-card-hover transition-colors cursor-pointer"
+                                        className="flex w-full cursor-pointer gap-4 rounded-xl border border-border-primary bg-bg-surface p-3 text-left transition-colors hover:bg-bg-card-hover"
                                         onClick={() => handleProjectClick(project.project_id)}
                                     >
                                         {/* Left Column: Square Icon */}
@@ -423,14 +423,14 @@ export default function ModuleBrowser({ context, onBack }) {
                                                 className="w-full h-full rounded-lg object-cover"
                                             />
                                             ) : (
-                                            <div className="w-full h-full bg-bg-card rounded-lg flex items-center justify-center text-text-muted text-xs">
+                                            <div className="flex h-full w-full items-center justify-center rounded-lg bg-bg-card text-xs text-text-muted">
                                                 No Icon
                                             </div>
                                             )}
                                         </div>
 
                                         {/* Right Column: Content */}
-                                        <div className="flex p-1 flex-col justify-between min-w-0">
+                                            <div className="flex min-w-0 flex-col justify-between p-1">
                                             <div>
                                                 <h3 className="text-text-primary truncate">
                                                     <span className="text-lg font-semibold font-normal">{project.title}</span>
@@ -440,7 +440,7 @@ export default function ModuleBrowser({ context, onBack }) {
                                             </div>
                                                 
                                             {/* Stats Row */}
-                                            <div className="flex items-center gap-4 text-xs text-text-muted mt-3">
+                                            <div className="mt-3 flex items-center gap-4 text-xs text-text-muted">
                                                 <div className="flex items-center gap-1">
                                                     <Download size={14} />
                                                     <span>{project.downloads.toLocaleString()}</span>
@@ -478,7 +478,7 @@ export default function ModuleBrowser({ context, onBack }) {
                             <button
                                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                                 disabled={currentPage === 1}
-                                className="px-3 py-1 text-sm bg-bg-surface text-text-primary rounded hover:bg-bg-card-hover disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="rounded-lg border border-border-primary bg-bg-surface px-3 py-1 text-sm text-text-primary transition-colors hover:bg-bg-card-hover disabled:cursor-not-allowed disabled:opacity-50"
                             >
                                 ← Prev
                             </button>
@@ -493,7 +493,7 @@ export default function ModuleBrowser({ context, onBack }) {
                                     <button
                                         key={1}
                                         onClick={() => setCurrentPage(1)}
-                                        className={`px-3 py-1 text-sm rounded ${
+                                        className={`rounded-lg px-3 py-1 text-sm ${
                                             currentPage === 1
                                                 ? 'bg-accent-primary text-text-primary'
                                                 : 'bg-bg-surface text-text-primary hover:bg-bg-card-hover'
@@ -522,7 +522,7 @@ export default function ModuleBrowser({ context, onBack }) {
                                         <button
                                             key={i}
                                             onClick={() => setCurrentPage(i)}
-                                            className={`px-3 py-1 text-sm rounded ${
+                                            className={`rounded-lg px-3 py-1 text-sm ${
                                                 currentPage === i
                                                     ? 'bg-accent-primary text-text-primary'
                                                     : 'bg-bg-surface text-text-primary hover:bg-bg-card-hover'
@@ -544,7 +544,7 @@ export default function ModuleBrowser({ context, onBack }) {
                                         <button
                                             key={totalPages}
                                             onClick={() => setCurrentPage(totalPages)}
-                                            className={`px-3 py-1 text-sm rounded ${
+                                            className={`rounded-lg px-3 py-1 text-sm ${
                                                 currentPage === totalPages
                                                     ? 'bg-accent-primary text-text-primary'
                                                     : 'bg-bg-surface text-text-primary hover:bg-bg-card-hover'
@@ -564,7 +564,7 @@ export default function ModuleBrowser({ context, onBack }) {
                                     return Math.min(totalPages, p + 1)
                                 })}
                                 disabled={currentPage >= Math.ceil(totalHits / RESULTS_PER_PAGE)}
-                                className="px-3 py-1 text-sm bg-bg-surface text-text-primary rounded hover:bg-bg-card-hover disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="rounded-lg border border-border-primary bg-bg-surface px-3 py-1 text-sm text-text-primary transition-colors hover:bg-bg-card-hover disabled:cursor-not-allowed disabled:opacity-50"
                             >
                                 Next →
                             </button>
